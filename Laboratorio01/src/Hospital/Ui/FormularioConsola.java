@@ -2,6 +2,7 @@ package Hospital.Ui;
 
 import Hospital.Entity.Doctor;
 import Hospital.Entity.Paciente;
+import Hospital.Util.Especialidades;
 import Hospital.Util.Validador;
 import Hospital.DTO.DoctorDTO;
 import Hospital.DTO.PacienteDTO;
@@ -51,14 +52,28 @@ public class FormularioConsola {
         // Solicitar fecha de nacimiento
         dto.setFechaNacimiento(solicitarFechaComoCadena("Fecha de nacimiento (dd/MM/yyyy): "));
 
-        // Solicitar especialidad
-        System.out.print("Especialidad: ");
-        dto.setEspecialidad(scanner.nextLine());
-        while (!Validador.validarCampoObligatorio(dto.getEspecialidad())) {
-            System.out.println("La especialidad es obligatoria.");
-            System.out.print("Especialidad: ");
-            dto.setEspecialidad(scanner.nextLine());
+        // Mostrar menú de especialidades y solicitar selección
+        Especialidades.mostrarMenuEspecialidades();
+        int seleccion = 0;
+        boolean seleccionValida = false;
+
+        while (!seleccionValida) {
+            System.out.print("Seleccione una especialidad (1-" + Especialidades.getEspecialidades().size() + "): ");
+            try {
+                seleccion = Integer.parseInt(scanner.nextLine());
+                seleccionValida = Especialidades.esSeleccionValida(seleccion);
+
+                if (!seleccionValida) {
+                    System.out.println("Selección inválida. Por favor, elija un número del menú.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Por favor, ingrese un número válido.");
+            }
         }
+
+        // Asignar la especialidad seleccionada
+        dto.setEspecialidad(Especialidades.getEspecialidad(seleccion - 1));
+        System.out.println("Especialidad seleccionada: " + dto.getEspecialidad());
 
         // Solicitar fecha de reclutamiento
         dto.setFechaReclutamiento(solicitarFechaComoCadena("Fecha de reclutamiento (dd/MM/yyyy): "));
@@ -73,8 +88,7 @@ public class FormularioConsola {
             fechaReclutamiento = Validador.validarFecha(dto.getFechaReclutamiento());
         }
 
-
-        // Convertir DTO a entidad
+        // Convertir DTO a entidad (el código se genera automáticamente)
         Doctor doctor = Convertidor.convertirADoctor(dto);
         System.out.println("Código generado automáticamente: " + doctor.getCodigoDoctor());
         return doctor;

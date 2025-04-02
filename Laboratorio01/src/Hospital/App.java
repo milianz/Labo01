@@ -43,6 +43,10 @@ public class App {
                     mostrarPacientes();
                     break;
 
+                case 5:
+                    mostrarMensajeMundo();
+                    break;
+
                 case 0:
                     System.out.println("¡Gracias por usar el sistema! ¡Dr. Mundo salva vidas!");
                     break;
@@ -68,6 +72,7 @@ public class App {
         System.out.println("2. Agregar nuevo paciente");
         System.out.println("3. Ver lista de doctores");
         System.out.println("4. Ver lista de pacientes");
+        System.out.println("5. ¡Mundo salva vidas!");
         System.out.println("0. Salir");
         System.out.println("=========================================");
         System.out.print("Seleccione una opción: ");
@@ -103,5 +108,11 @@ public class App {
                 System.out.println((i + 1) + ". " + pacientes.get(i));
             }
         }
+    }
+
+    private static void mostrarMensajeMundo(){
+        System.out.println("===== MUNDO SALVA VIDAS ===== ");
+        System.out.println("");
+        System.out.println("(Este botón no sirve de nada pero se ve bonito)");
     }
 }
