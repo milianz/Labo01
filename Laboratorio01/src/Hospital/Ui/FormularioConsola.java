@@ -1,20 +1,30 @@
 package Hospital.Ui;
 
+import Hospital.DTO.CitaDTO;
+import Hospital.Entity.Cita;
 import Hospital.Entity.Doctor;
 import Hospital.Entity.Paciente;
 import Hospital.Util.Especialidades;
+import Hospital.Util.GeneradorCodigos;
 import Hospital.Util.Validador;
 import Hospital.DTO.DoctorDTO;
 import Hospital.DTO.PacienteDTO;
 import Hospital.DTO.Convertidor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.List;
 import java.util.Scanner;
+
+import static Hospital.Util.GeneradorCodigos.random;
 
 public class FormularioConsola {
     private static final Scanner scanner = new Scanner(System.in);
-    private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+    private static final DateTimeFormatter FORMATO_HORA = DateTimeFormatter.ofPattern("HH:mm");
 
     // Metodo para crear un nuevo doctor usando DTO
     public static Doctor crearDoctor() {
@@ -165,5 +175,137 @@ public class FormularioConsola {
         }
 
         return fechaStr;
+    }
+
+    // Método para crear una nueva cita
+    public static Cita crearCita(List<Doctor> doctores, List<Paciente> pacientes) {
+        System.out.println("\n===== AGENDAR NUEVA CITA =====");
+
+        if (doctores.isEmpty()) {
+            System.out.println("Error: No hay doctores registrados en el sistema.");
+            return null;
+        }
+
+        if (pacientes.isEmpty()) {
+            System.out.println("Error: No hay pacientes registrados en el sistema.");
+            return null;
+        }
+
+        CitaDTO dto = new CitaDTO();
+
+
+        System.out.println("\n----- Seleccione un doctor -----");
+        for (int i = 0; i < doctores.size(); i++) {
+            System.out.println((i + 1) + ". " + doctores.get(i));
+        }
+
+        int seleccionDoctor = -1;
+        while (seleccionDoctor < 0 || seleccionDoctor >= doctores.size()) {
+            System.out.print("Seleccione un doctor (1-" + doctores.size() + "): ");
+            try {
+                seleccionDoctor = Integer.parseInt(scanner.nextLine()) - 1;
+                if (seleccionDoctor < 0 || seleccionDoctor >= doctores.size()) {
+                    System.out.println("Selección inválida. Intente de nuevo.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Por favor, ingrese un número válido.");
+            }
+        }
+
+        Doctor doctorSeleccionado = doctores.get(seleccionDoctor);
+        dto.setDoctorId(doctorSeleccionado.getCodigoDoctor());
+
+
+        System.out.println("\n----- Seleccione un paciente -----");
+        for (int i = 0; i < pacientes.size(); i++) {
+            System.out.println((i + 1) + ". " + pacientes.get(i));
+        }
+
+        int seleccionPaciente = -1;
+        while (seleccionPaciente < 0 || seleccionPaciente >= pacientes.size()) {
+            System.out.print("Seleccione un paciente (1-" + pacientes.size() + "): ");
+            try {
+                seleccionPaciente = Integer.parseInt(scanner.nextLine()) - 1;
+                if (seleccionPaciente < 0 || seleccionPaciente >= pacientes.size()) {
+                    System.out.println("Selección inválida. Intente de nuevo.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Por favor, ingrese un número válido.");
+            }
+        }
+
+        Paciente pacienteSeleccionado = pacientes.get(seleccionPaciente);
+        dto.setPacienteId(pacienteSeleccionado.getCodigoPaciente());
+
+        dto.setEspecialidad(doctorSeleccionado.getEspecialidad());
+
+
+        System.out.print("\n¿Es una cita para hoy mismo? (S/N): ");
+        String respuesta = scanner.nextLine().trim().toUpperCase();
+        boolean citaDelDia = respuesta.equals("S") || respuesta.equals("SI");
+        dto.setCitaDelDia(citaDelDia);
+
+        LocalDateTime fechaHoraCita;
+
+        if (citaDelDia) {
+            // Para citas del mismo día, solicitar hora exacta
+            LocalTime hora = null;
+            while (hora == null) {
+                System.out.print("Ingrese la hora (formato 24h, HH:mm): ");
+                String horaStr = scanner.nextLine();
+                try {
+                    hora = LocalTime.parse(horaStr, FORMATO_HORA);
+                    // Validar que la hora esté dentro del horario de atención (8:00 - 16:00)
+                    if (hora.isBefore(LocalTime.of(8, 0)) || hora.isAfter(LocalTime.of(16, 0))) {
+                        System.out.println("El horario de atención es de 8:00 a 16:00.");
+                        hora = null;
+                    }
+                } catch (DateTimeParseException e) {
+                    System.out.println("Formato de hora incorrecto. Use HH:mm (Ej: 14:30)");
+                }
+            }
+
+            fechaHoraCita = LocalDateTime.of(LocalDate.now(), hora);
+            dto.setPacienteAsistio(true); // Si es cita del día, el paciente asiste por defecto
+        } else {
+            // Para citas futuras, solicitar fecha y asignar hora automáticamente
+            LocalDate fecha = null;
+            while (fecha == null) {
+                System.out.print("Ingrese la fecha de la cita (dd/MM/yyyy): ");
+                String fechaStr = scanner.nextLine();
+                fecha = Validador.validarFecha(fechaStr);
+
+                if (fecha == null) {
+                    System.out.println("Formato de fecha incorrecto. Use dd/MM/yyyy");
+                } else if (fecha.isBefore(LocalDate.now())) {
+                    System.out.println("La fecha debe ser igual o posterior a hoy.");
+                    fecha = null;
+                }
+            }
+
+            // Asignar hora aleatoria entre 8:00 y 16:00 para citas futuras
+            int hora = 8 + random.nextInt(8); // Horas entre 8 y 15
+            int minutos = random.nextInt(4) * 15; // Minutos: 0, 15, 30 o 45
+
+            fechaHoraCita = LocalDateTime.of(fecha, LocalTime.of(hora, minutos));
+            dto.setPacienteAsistio(false); // Cita futura, aún no asiste
+        }
+
+        dto.setFechaHora(fechaHoraCita);
+
+        // Generar un ID para la cita
+        dto.setId(GeneradorCodigos.generarCodigo("CTI-", 5));
+
+        // Convertir DTO a entidad
+        Cita nuevaCita = Convertidor.convertirACita(dto, doctores, pacientes);
+
+        if (nuevaCita != null) {
+              // Agregar la cita a la lista
+            System.out.println("\nCita guardada correctamente.");
+        } else {
+            System.out.println("\nError al agendar la cita. Verifique los datos e intente nuevamente.");
+        }
+
+        return nuevaCita;
     }
 }
