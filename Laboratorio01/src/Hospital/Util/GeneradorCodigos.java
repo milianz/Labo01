@@ -4,8 +4,19 @@ package Hospital.Util;
 import java.util.Random;
 
 public class GeneradorCodigos {
-    private static final Random random = new Random();
+    public static final Random random = new Random();
     private static final String LETRAS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    // Método genérico para generar códigos personalizados
+    public static String generarCodigo(String prefijo, int longitudNumeros) {
+        StringBuilder codigo = new StringBuilder(prefijo + "-");
+
+        for (int i = 0; i < longitudNumeros; i++) {
+            codigo.append(random.nextInt(10)); // Agrega un número aleatorio
+        }
+
+        return codigo.toString();
+    }
 
     // Genera un código de paciente: ZNP-XXXXX (donde X son números)
     public static String generarCodigoPaciente() {
@@ -35,4 +46,6 @@ public class GeneradorCodigos {
 
         return codigo.toString();
     }
+
+
 }

@@ -1,11 +1,14 @@
 package Hospital.DTO;
 
+import Hospital.Entity.Cita;
 import Hospital.Entity.Doctor;
 import Hospital.Entity.Paciente;
 import Hospital.Entity.Persona;
+import Hospital.Util.GeneradorCodigos;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 public class Convertidor {
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -69,5 +72,56 @@ public class Convertidor {
                     dto.getSintomas()
             );
         }
+    }
+
+    // Convertir CitaDTO a Cita
+    public static Cita convertirACita(CitaDTO dto, List<Doctor> doctores, List<Paciente> pacientes) {
+        // Buscar doctor y paciente por ID
+        Doctor doctor = null;
+        for (Doctor doc : doctores) {
+            if (doc.getCodigoDoctor().equals(dto.getDoctorId())) {
+                doctor = doc;
+                break;
+            }
+        }
+
+        Paciente paciente = null;
+        for (Paciente pac : pacientes) {
+            if (pac.getCodigoPaciente().equals(dto.getPacienteId())) {
+                paciente = pac;
+                break;
+            }
+        }
+
+        if (doctor == null || paciente == null) {
+            return null; // No se encontró doctor o paciente
+        }
+
+        String id = (dto.getId() != null && !dto.getId().isEmpty())
+                ? dto.getId()
+                : GeneradorCodigos.generarCodigo("CTI", 5);
+
+        return new Cita(
+                id,
+                doctor,
+                paciente,
+                dto.getEspecialidad(),
+                dto.getFechaHora(),
+                dto.isCitaDelDia(),
+                dto.isPacienteAsistio()
+        );
+    }
+
+    // Convertir Cita a CitaDTO
+    public static CitaDTO convertirACitaDTO(Cita cita) {
+        return new CitaDTO(
+                cita.getId(),
+                cita.getDoctor().getCodigoDoctor(),
+                cita.getPaciente().getCodigoPaciente(),
+                cita.getEspecialidad(),
+                cita.getFechaHora(),
+                cita.isCitaDelDia(),
+                cita.isPacienteAsistio()
+        );
     }
 }
