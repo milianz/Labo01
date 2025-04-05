@@ -1,6 +1,5 @@
 package Hospital;
 
-
 import Hospital.Entity.Cita;
 import Hospital.Entity.Doctor;
 import Hospital.Entity.Paciente;
