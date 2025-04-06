@@ -4,30 +4,24 @@ import Hospital.Entity.Cita;
 import Hospital.Entity.Doctor;
 import Hospital.Entity.Paciente;
 import Hospital.Service.CitaService;
+import Hospital.Service.HospitalGestor;
 import Hospital.Ui.FormularioConsola;
 import Hospital.Util.Especialidades;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
-
-
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Scanner;
 
 public class App {
     private static final Scanner scanner = new Scanner(System.in);
-    private static final List<Doctor> doctores = new ArrayList<>();
-    private static final List<Paciente> pacientes = new ArrayList<>();
+    private static final HospitalGestor hospitalGestor = new HospitalGestor();
     private static final CitaService citaService = new CitaService();
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public static void main(String[] args) {
+        // Inicializar el gestor en FormularioConsola
+        FormularioConsola.inicializarGestor(hospitalGestor);
+
         int opcion;
 
         do {
@@ -37,20 +31,22 @@ public class App {
             switch (opcion) {
                 case 1:
                     Doctor nuevoDoctor = FormularioConsola.crearDoctor();
-                    doctores.add(nuevoDoctor);
-                    System.out.println("\nDoctor registrado exitosamente:");
-                    System.out.println(nuevoDoctor);
+                    if (nuevoDoctor != null) {
+                        System.out.println("\nDoctor registrado exitosamente:");
+                        System.out.println(nuevoDoctor);
+                    }
                     break;
 
                 case 2:
                     Paciente nuevoPaciente = FormularioConsola.crearPaciente();
-                    pacientes.add(nuevoPaciente);
-                    System.out.println("\nPaciente registrado exitosamente:");
-                    System.out.println(nuevoPaciente);
+                    if (nuevoPaciente != null) {
+                        System.out.println("\nPaciente registrado exitosamente:");
+                        System.out.println(nuevoPaciente);
+                    }
                     break;
 
                 case 3:
-                    Cita nuevaCita = FormularioConsola.crearCita(doctores, pacientes);
+                    Cita nuevaCita = FormularioConsola.crearCita();
                     if (nuevaCita != null) {
                         boolean agendada = citaService.agendarCita(nuevaCita);
                         if (!agendada) {
@@ -113,18 +109,6 @@ public class App {
         System.out.print("Seleccione una opción: ");
     }
 
-    private static void agendarNuevaCita() {
-        Cita nuevaCita = FormularioConsola.crearCita(doctores, pacientes);
-        if (nuevaCita != null) {
-            boolean agendada = citaService.agendarCita(nuevaCita);
-            if (agendada) {
-                System.out.println("\nCita agendada exitosamente!");
-            } else {
-                System.out.println("\nError: No se pudo agendar la cita. Conflicto de horario.");
-            }
-        }
-    }
-
     private static void mostrarSubmenuCitas() {
         System.out.println("\n===== LISTADO DE CITAS =====");
         System.out.println("1. Ver todas las citas");
@@ -185,27 +169,27 @@ public class App {
     }
 
     private static void buscarCitasPorDoctor() {
-        if (doctores.isEmpty()) {
+        if (hospitalGestor.getDoctores().isEmpty()) {
             System.out.println("No hay doctores registrados.");
             return;
         }
 
         System.out.println("\n===== BUSCAR CITAS POR DOCTOR =====");
         mostrarDoctores();
-        System.out.print("\nSeleccione un doctor (1-" + doctores.size() + "): ");
+        System.out.print("\nSeleccione un doctor (1-" + hospitalGestor.getDoctores().size() + "): ");
         int seleccion = leerOpcion() - 1;
 
-        if (seleccion >= 0 && seleccion < doctores.size()) {
-            Doctor doctor = doctores.get(seleccion);
-            List<Cita> citasDoctor = citaService.filtrarCitasPorDoctor(doctor.getCodigoDoctor());
-            mostrarCitas(citasDoctor, "CITAS DEL DR. " + doctor.getNombreCompleto().toUpperCase());
+        if (seleccion >= 0 && seleccion < hospitalGestor.getDoctores().size()) {
+            Doctor doctor = hospitalGestor.getDoctores().get(seleccion);
+            mostrarCitas(citaService.filtrarCitasPorDoctor(doctor.getCodigoDoctor()),
+                    "CITAS DEL DR. " + doctor.getNombreCompleto().toUpperCase());
         } else {
             System.out.println("Selección inválida.");
         }
     }
 
     private static void cancelarCita() {
-        List<Cita> citas = citaService.listarCitas();
+        java.util.List<Cita> citas = citaService.listarCitas();
         if (citas.isEmpty()) {
             System.out.println("No hay citas para cancelar.");
             return;
@@ -224,7 +208,7 @@ public class App {
         }
     }
 
-    private static void mostrarCitas(List<Cita> citas, String titulo) {
+    private static void mostrarCitas(java.util.List<Cita> citas, String titulo) {
         System.out.println("\n===== " + titulo + " =====");
         if (citas.isEmpty()) {
             System.out.println("No hay citas para mostrar.");
@@ -243,6 +227,7 @@ public class App {
 
     private static void mostrarDoctores() {
         System.out.println("\n===== LISTA DE DOCTORES =====");
+        java.util.List<Doctor> doctores = hospitalGestor.getDoctores();
 
         if (doctores.isEmpty()) {
             System.out.println("No hay doctores registrados.");
@@ -255,6 +240,7 @@ public class App {
 
     private static void mostrarPacientes() {
         System.out.println("\n===== LISTA DE PACIENTES =====");
+        java.util.List<Paciente> pacientes = hospitalGestor.getPacientes();
 
         if (pacientes.isEmpty()) {
             System.out.println("No hay pacientes registrados.");

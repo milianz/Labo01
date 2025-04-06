@@ -4,6 +4,7 @@ import Hospital.DTO.CitaDTO;
 import Hospital.Entity.Cita;
 import Hospital.Entity.Doctor;
 import Hospital.Entity.Paciente;
+import Hospital.Service.HospitalGestor;
 import Hospital.Util.Especialidades;
 import Hospital.Util.GeneradorCodigos;
 import Hospital.Util.Validador;
@@ -23,8 +24,13 @@ import static Hospital.Util.GeneradorCodigos.random;
 
 public class FormularioConsola {
     private static final Scanner scanner = new Scanner(System.in);
-
     private static final DateTimeFormatter FORMATO_HORA = DateTimeFormatter.ofPattern("HH:mm");
+    private static HospitalGestor gestor; // Agregamos referencia al gestor
+
+    // Inicializar el gestor
+    public static void inicializarGestor(HospitalGestor hospitalGestor) {
+        gestor = hospitalGestor;
+    }
 
     // Metodo para crear un nuevo doctor usando DTO
     public static Doctor crearDoctor() {
@@ -50,11 +56,15 @@ public class FormularioConsola {
             dto.setApellido(scanner.nextLine());
         }
 
-        // Solicitar DUI
+        // Solicitar DUI y validar que no exista
         System.out.print("DUI (formato 12345678-9): ");
         dto.setDui(scanner.nextLine());
-        while (!Validador.validarDUI(dto.getDui())) {
-            System.out.println("DUI inválido. Debe tener el formato 12345678-9.");
+        while (!Validador.validarDUI(dto.getDui()) || (gestor != null && gestor.duiExiste(dto.getDui()))) {
+            if (!Validador.validarDUI(dto.getDui())) {
+                System.out.println("DUI inválido. Debe tener el formato 12345678-9.");
+            } else {
+                System.out.println("Error: Este DUI ya está registrado en el sistema.");
+            }
             System.out.print("DUI: ");
             dto.setDui(scanner.nextLine());
         }
@@ -101,6 +111,16 @@ public class FormularioConsola {
         // Convertir DTO a entidad (el código se genera automáticamente)
         Doctor doctor = Convertidor.convertirADoctor(dto);
         System.out.println("Código generado automáticamente: " + doctor.getCodigoDoctor());
+
+        // Si tenemos gestor, intentar agregar el doctor
+        if (gestor != null) {
+            boolean agregado = gestor.agregarDoctor(doctor);
+            if (!agregado) {
+                System.out.println("No se pudo agregar el doctor. El DUI ya existe en el sistema.");
+                return null;
+            }
+        }
+
         return doctor;
     }
 
@@ -139,8 +159,12 @@ public class FormularioConsola {
         if (!esMenor) {
             System.out.print("DUI (formato 12345678-9): ");
             dto.setDui(scanner.nextLine());
-            while (!Validador.validarDUI(dto.getDui())) {
-                System.out.println("DUI inválido. Debe tener el formato 12345678-9.");
+            while (!Validador.validarDUI(dto.getDui()) || (gestor != null && gestor.duiExiste(dto.getDui()))) {
+                if (!Validador.validarDUI(dto.getDui())) {
+                    System.out.println("DUI inválido. Debe tener el formato 12345678-9.");
+                } else {
+                    System.out.println("Error: Este DUI ya está registrado en el sistema.");
+                }
                 System.out.print("DUI: ");
                 dto.setDui(scanner.nextLine());
             }
@@ -156,6 +180,16 @@ public class FormularioConsola {
         // Convertir DTO a entidad
         Paciente paciente = Convertidor.convertirAPaciente(dto);
         System.out.println("Código de expediente generado automáticamente: " + paciente.getCodigoPaciente());
+
+        // Si tenemos gestor, intentar agregar el paciente
+        if (gestor != null) {
+            boolean agregado = gestor.agregarPaciente(paciente);
+            if (!agregado) {
+                System.out.println("No se pudo agregar el paciente. El DUI ya existe en el sistema.");
+                return null;
+            }
+        }
+
         return paciente;
     }
 
@@ -177,8 +211,19 @@ public class FormularioConsola {
         return fechaStr;
     }
 
-    // Método para crear una nueva cita
+    // El método crearCita permanece igual, excepto que ahora debe utilizar las listas del gestor
+    public static Cita crearCita() {
+        if (gestor == null) {
+            System.out.println("Error: Gestor no inicializado.");
+            return null;
+        }
+
+        return crearCita(gestor.getDoctores(), gestor.getPacientes());
+    }
+
+    // Método para crear una nueva cita (mantener este método para compatibilidad)
     public static Cita crearCita(List<Doctor> doctores, List<Paciente> pacientes) {
+        // Código existente...
         System.out.println("\n===== AGENDAR NUEVA CITA =====");
 
         if (doctores.isEmpty()) {
@@ -192,7 +237,6 @@ public class FormularioConsola {
         }
 
         CitaDTO dto = new CitaDTO();
-
 
         System.out.println("\n----- Seleccione un doctor -----");
         for (int i = 0; i < doctores.size(); i++) {
@@ -214,7 +258,6 @@ public class FormularioConsola {
 
         Doctor doctorSeleccionado = doctores.get(seleccionDoctor);
         dto.setDoctorId(doctorSeleccionado.getCodigoDoctor());
-
 
         System.out.println("\n----- Seleccione un paciente -----");
         for (int i = 0; i < pacientes.size(); i++) {
@@ -238,7 +281,6 @@ public class FormularioConsola {
         dto.setPacienteId(pacienteSeleccionado.getCodigoPaciente());
 
         dto.setEspecialidad(doctorSeleccionado.getEspecialidad());
-
 
         System.out.print("\n¿Es una cita para hoy mismo? (S/N): ");
         String respuesta = scanner.nextLine().trim().toUpperCase();
@@ -300,7 +342,7 @@ public class FormularioConsola {
         Cita nuevaCita = Convertidor.convertirACita(dto, doctores, pacientes);
 
         if (nuevaCita != null) {
-              // Agregar la cita a la lista
+            // Agregar la cita a la lista
             System.out.println("\nCita guardada correctamente.");
         } else {
             System.out.println("\nError al agendar la cita. Verifique los datos e intente nuevamente.");
